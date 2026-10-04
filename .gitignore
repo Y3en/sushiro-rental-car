@@ -1,0 +1,11 @@
+# dependencies
+node_modules/
+
+# environment / secrets (autograde.js recreates config/config.env in CI)
+config/config.env
+.env
+
+# autograding output (autograde.js pushes these to the 'grades' branch itself)
+grade.json
+grade.md
+newman-report.json

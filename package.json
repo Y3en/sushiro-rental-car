@@ -1,0 +1,31 @@
+{
+  "name": "vacq-a4",
+  "version": "1.0.0",
+  "description": "REST API for managing hospitals - 2110503 Assignment 4",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2110503-69CP/a4-Y3en.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/2110503-69CP/a4-Y3en/issues"
+  },
+  "homepage": "https://github.com/2110503-69CP/a4-Y3en#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.9.4",
+    "nodemon": "^3.1.14"
+  }
+}
