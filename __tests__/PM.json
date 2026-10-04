@@ -1,0 +1,809 @@
+{
+  "info": {
+    "_postman_id": "743e62ba-498d-4f33-94bb-751b0baf7b81",
+    "name": "VacQ A7-2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "15205475"
+  },
+  "item": [
+    {
+      "name": "login admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// pm.test(\"Status code is 200\", function () {\r",
+              "//     pm.response.to.have.status(200);\r",
+              "// });\r",
+              "\r",
+              "pm.environment.set(\"TOKEN\",pm.response.json().token)"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\":\"admin@gmail.com\",\r\n    \"password\":\"12345678\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "post new hospital",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// pm.test(\"Status code is 201\", function () {\r",
+              "//     pm.response.to.have.status(201);\r",
+              "// });\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "console.log(response.data._id);\r",
+              "\r",
+              "pm.globals.set(\"global_hospital_id\",response.data._id);"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\":\"{{$randomFullName}}\",\r\n    \"address\":\"Changwattana Pakkret\",\r\n    \"district\":\"Pakkret\",\r\n    \"province\":\"Non\",\r\n    \"postalcode\":\"10110\",\r\n    \"tel\":\"02-8369999\",\r\n    \"region\":\"กรุงเทพมหานคร (Bangkok)\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "register",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// pm.test(\"Status code is 200\", function () {\r",
+              "//     pm.response.to.have.status(200);\r",
+              "// });\r",
+              "\r",
+              "pm.environment.set(\"TOKEN\",pm.response.json().token)"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\":\"{{$randomFullName}}\",\r\n    \"email\":\"{{$randomEmail}}\",\r\n    \"password\": \"{{$randomPassword}}\",\r\n    \"role\":\"user\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/auth/register",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "post new appt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "});\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "console.log(response.data._id);\r",
+              "\r",
+              "pm.globals.set(\"global_appt_id\",response.data._id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"apptDate\": \"2021-01-11T17:00:00.000Z\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:h_id/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":h_id",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}",
+              "disabled": true
+            }
+          ],
+          "variable": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "post new appt2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// pm.test(\"Status code is 201\", function () {\r",
+              "//     pm.response.to.have.status(201);\r",
+              "// });\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "console.log(response.data._id);\r",
+              "\r",
+              "pm.globals.set(\"global_appt_id\",response.data._id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"apptDate\": \"2022-02-22T17:00:00.000Z\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:h_id/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":h_id",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}",
+              "disabled": true
+            }
+          ],
+          "variable": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "post new appt3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// pm.test(\"Status code is 201\", function () {\r",
+              "//     pm.response.to.have.status(201);\r",
+              "// });\r",
+              "\r",
+              "const response = pm.response.json();\r",
+              "console.log(response.data._id);\r",
+              "\r",
+              "pm.globals.set(\"global_appt_id\",response.data._id);"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"apptDate\": \"2023-03-13T17:00:00.000Z\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:h_id/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":h_id",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}",
+              "disabled": true
+            }
+          ],
+          "variable": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "post new appt4 error",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {\r",
+              "    pm.response.to.have.status(400);\r",
+              "});\r",
+              ""
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"apptDate\": \"2024-04-14T17:00:00.000Z\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:h_id/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":h_id",
+            "appointments"
+          ],
+          "query": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}",
+              "disabled": true
+            }
+          ],
+          "variable": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "update new appt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"apptDate\": \"2025-05-15T17:00:00.000Z\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/appointments/:appt_id",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "appointments",
+            ":appt_id"
+          ],
+          "variable": [
+            {
+              "key": "appt_id",
+              "value": "{{global_appt_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "del appt",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/appointments/:appt_id",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "appointments",
+            ":appt_id"
+          ],
+          "variable": [
+            {
+              "key": "appt_id",
+              "value": "{{global_appt_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "login admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// pm.test(\"Status code is 200\", function () {\r",
+              "//     pm.response.to.have.status(200);\r",
+              "// });\r",
+              "\r",
+              "pm.environment.set(\"TOKEN\",pm.response.json().token)"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\":\"admin@gmail.com\",\r\n    \"password\":\"12345678\"\r\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "del hospital cascade",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "description": "JSON Type",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:hos_id",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":hos_id"
+          ],
+          "variable": [
+            {
+              "key": "hos_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "get all appts for hospital",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"GET appts for hospital\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "    //pm.expect(pm.response.json().data[0].hospital._id).to.equal(\"68c176ba86623b3465655dc9\");\r",
+              "    pm.expect(pm.response.json().count).to.equal(0);\r",
+              "\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{TOKEN}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:hos_id/appointments",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":hos_id",
+            "appointments"
+          ],
+          "variable": [
+            {
+              "key": "hos_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "get hospital",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {\r",
+              "    pm.response.to.have.status(400);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/hospitals/:h_id",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "hospitals",
+            ":h_id"
+          ],
+          "variable": [
+            {
+              "key": "h_id",
+              "value": "{{global_hospital_id}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
