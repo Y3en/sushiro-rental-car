@@ -37,3 +37,72 @@ exports.createBooking = async (req, res) => {
         return res.status(500).json({success: false, message: 'Cannot create booking'});
     }
 };
+
+exports.getOwnBookings = async (req, res) => {
+    try {
+        const bookings = await Booking.find({user: req.user.id}).populate('provider', 'name address tel');
+        return res.status(200).json({success: true, count: bookings.length, data: bookings});
+    } catch (error) {
+        return res.status(500).json({success: false, message: 'Cannot find bookings'});
+    }
+};
+
+exports.getOwnBooking = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id).populate('provider', 'name address tel');
+        if (!booking) return res.status(404).json({success: false, message: 'Booking not found'});
+        if (booking.user.toString() !== req.user.id) {
+            return res.status(403).json({success: false, message: 'Not authorized to access this booking'});
+        }
+        return res.status(200).json({success: true, data: booking});
+    } catch (error) {
+        return res.status(400).json({success: false, message: 'Invalid booking id'});
+    }
+};
+
+exports.updateOwnBooking = async (req, res) => {
+    const {provider, pickupDate} = req.body;
+    if (provider === undefined && pickupDate === undefined) {
+        return res.status(400).json({success: false, message: 'provider or pickupDate is required'});
+    }
+    if (provider !== undefined && !mongoose.isValidObjectId(provider)) {
+        return res.status(400).json({success: false, message: 'Invalid provider'});
+    }
+    const date = pickupDate === undefined ? undefined : new Date(pickupDate);
+    if (pickupDate !== undefined && (!pickupDate || Number.isNaN(date.getTime()))) {
+        return res.status(400).json({success: false, message: 'Invalid pickupDate'});
+    }
+
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({success: false, message: 'Booking not found'});
+        if (booking.user.toString() !== req.user.id) {
+            return res.status(403).json({success: false, message: 'Not authorized to update this booking'});
+        }
+        if (provider !== undefined) {
+            if (!(await Provider.exists({_id: provider}))) {
+                return res.status(404).json({success: false, message: 'Provider not found'});
+            }
+            booking.provider = provider;
+        }
+        if (date !== undefined) booking.pickupDate = date;
+        await booking.save();
+        return res.status(200).json({success: true, data: booking});
+    } catch (error) {
+        return res.status(400).json({success: false, message: 'Cannot update booking'});
+    }
+};
+
+exports.deleteOwnBooking = async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({success: false, message: 'Booking not found'});
+        if (booking.user.toString() !== req.user.id) {
+            return res.status(403).json({success: false, message: 'Not authorized to delete this booking'});
+        }
+        await booking.deleteOne();
+        return res.status(200).json({success: true, data: {}});
+    } catch (error) {
+        return res.status(400).json({success: false, message: 'Cannot delete booking'});
+    }
+};
