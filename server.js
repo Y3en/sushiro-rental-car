@@ -12,6 +12,7 @@ const providers = require('./routes/providers');
 const auth = require('./routes/auth');
 const appointments = require('./routes/appointments');
 const bookings = require('./routes/bookings');
+const adminBookings = require('./routes/adminBookings');
 const branches = require('./routes/branches');
 const cars = require('./routes/cars');
 
@@ -28,6 +29,7 @@ app.use('/api/v1/providers', providers);
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/appointments', appointments);
 app.use('/api/v1/bookings', bookings);
+app.use('/api/v1/admin/bookings', adminBookings);
 app.use('/api/v1/branches', branches);
 app.use('/api/v1/cars', cars);
 
