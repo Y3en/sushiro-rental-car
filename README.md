@@ -17,10 +17,16 @@ Base path: `/api/v1`
 | Method | Path | Access |
 | --- | --- | --- |
 | POST | `/auth/register`, `/auth/login` | Public |
-| GET | `/auth/me` | Logged in |
-| GET | `/providers`, `/providers/:id` | Public (login required from issue #3) |
+| GET | `/auth/me`, `/auth/logout` | Logged in |
+| GET | `/providers`, `/providers/:id` | Logged in |
 | POST, PUT, DELETE | `/providers`, `/providers/:id` | Admin |
+| GET | `/branches`, `/providers/:providerId/branches`, `/branches/:id` | Logged in |
+| POST | `/providers/:providerId/branches` | Admin |
+| PUT, DELETE | `/branches/:id` | Admin |
+| GET | `/cars`, `/branches/:branchId/cars`, `/cars/:id` | Logged in |
+| POST | `/branches/:branchId/cars` | Admin |
+| PUT, DELETE | `/cars/:id` | Admin |
 | GET, POST | `/appointments`, `/providers/:providerId/appointments` | Logged in (becomes `/bookings`) |
 | GET, PUT, DELETE | `/appointments/:id` | Owner or admin |
 
-Deleting a provider also deletes its bookings.
+Deleting a provider also deletes its branches, cars and bookings. Deleting a branch also deletes its cars.
