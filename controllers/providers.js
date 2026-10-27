@@ -1,8 +1,10 @@
 const Provider = require('../models/Provider');
 const Booking = require('../models/Booking');
+const Branch = require('../models/Branch');
+const Car = require('../models/Car');
 //@desc     Get all providers
 //@route    GET /api/v1/providers
-//@access   Public
+//@access   Private
 exports.getProviders = async (req, res, next) => {
   try{
     let query;
@@ -25,7 +27,7 @@ exports.getProviders = async (req, res, next) => {
 
     //finding resource
     const filter = JSON.parse(queryStr);
-    query = Provider.find(filter).populate('bookings');
+    query = Provider.find(filter);
 
     //Select Fields
     if(req.query.select){
@@ -127,8 +129,10 @@ exports.deleteProvider = async (req, res, next) => {
       return res.status(400).json({success:false});
     }
 
-    //Cascade delete: remove this provider's bookings first
+    //Cascade delete: remove this provider's bookings, cars and branches first
     await Booking.deleteMany({provider: req.params.id});
+    await Car.deleteMany({provider: req.params.id});
+    await Branch.deleteMany({provider: req.params.id});
     await Provider.deleteOne({_id: req.params.id});
 
     res.status(200).json({success:true, data: {}});
