@@ -7,6 +7,10 @@ const UserSchema=new mongoose.Schema({
         type:String,
         required:[true,'Please add a name']
     },
+    tel:{
+        type:String,
+        required:[true,'Please add a telephone number']
+    },
     email:{
         type: String,
         required:[true,'Please add an email'],
@@ -36,6 +40,8 @@ const UserSchema=new mongoose.Schema({
 });
 
 UserSchema.pre('save',async function() {
+    //Only rehash when the password was set or changed
+    if(!this.isModified('password')) return;
     const salt=await bcrypt.genSalt(10);
     this.password=await bcrypt.hash(this.password, salt);
 });
