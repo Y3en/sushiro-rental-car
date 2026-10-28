@@ -18,6 +18,10 @@
         "body": {"mode": "raw", "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"2026-12-01T10:00:00.000Z\"}"},
         "url": "{{baseUrl}}/bookings"
       }
-    }
+    },
+    {"name": "Get own bookings (#5)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/bookings"}},
+    {"name": "Get own booking (#5)", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/bookings/{{bookingId}}"}},
+    {"name": "Update own booking (#5)", "request": {"method": "PUT", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"pickupDate\":\"2026-12-02T10:00:00.000Z\",\"provider\":\"{{providerId}}\"}"}, "url": "{{baseUrl}}/bookings/{{bookingId}}"}},
+    {"name": "Delete own booking (#5)", "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{baseUrl}}/bookings/{{bookingId}}"}}
   ]
 }
