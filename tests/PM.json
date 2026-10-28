@@ -1,0 +1,23 @@
+{
+  "info": {
+    "name": "Booking API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:5000/api/v1"},
+    {"key": "token", "value": ""},
+    {"key": "providerId", "value": ""},
+    {"key": "bookingId", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "Create booking (#4)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"2026-12-01T10:00:00.000Z\"}"},
+        "url": "{{baseUrl}}/bookings"
+      }
+    }
+  ]
+}
