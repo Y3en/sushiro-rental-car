@@ -11,7 +11,6 @@ const BookingSchema = new mongoose.Schema({
         ref: 'Provider',
         required: true
     },
-    //Car model is added in a later issue, so it is optional for now
     car: {
         type: mongoose.Schema.ObjectId,
         ref: 'Car'
@@ -20,6 +19,14 @@ const BookingSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
+    returnDate: { type: Date },
+    totalPriceSatang: { type: Number, default: 0, min: 0 },
+    cancellationFeeSatang: { type: Number, default: 0, min: 0 },
+    refundSatang: { type: Number, default: 0, min: 0 },
+    cancelledAt: Date,
+    checkedInAt: Date,
+    deletedAt: Date,
+    notificationVersion: { type: Number, default: 0 },
     status: {
         type: String,
         enum: ['confirmed', 'cancelled', 'no-show', 'completed'],
@@ -30,5 +37,9 @@ const BookingSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+BookingSchema.index({user: 1, status: 1});
+BookingSchema.index({car: 1, status: 1, pickupDate: 1, returnDate: 1});
+BookingSchema.index({status: 1, checkedInAt: 1, pickupDate: 1});
 
 module.exports = mongoose.model('Booking', BookingSchema);

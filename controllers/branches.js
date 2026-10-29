@@ -1,3 +1,4 @@
+const inventory = require('../services/inventory');
 const Branch = require('../models/Branch');
 const Provider = require('../models/Provider');
 const Car = require('../models/Car');
@@ -39,14 +40,7 @@ exports.getBranch = async (req, res, next) => {
 //@access   Private (admin)
 exports.createBranch = async (req, res, next) => {
   try {
-    const provider = await Provider.findById(req.params.providerId);
-
-    if (!provider) {
-      return res.status(404).json({success: false, msg: `No provider with the id of ${req.params.providerId}`});
-    }
-
-    req.body.provider = req.params.providerId;
-    const branch = await Branch.create(req.body);
+    const branch = await inventory.createBranch(req.params.providerId, req.body);
 
     res.status(201).json({success: true, data: branch});
   } catch (err) {
@@ -60,10 +54,10 @@ exports.createBranch = async (req, res, next) => {
 exports.updateBranch = async (req, res, next) => {
   try {
     //A branch can not be moved to another provider
-    delete req.body.provider;
 
-    const branch = await Branch.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+
+    const branch = await Branch.findByIdAndUpdate(req.params.id, inventory.pick(req.body, ['name', 'address', 'tel']), {
+      returnDocument: 'after',
       runValidators: true
     });
 
@@ -82,18 +76,7 @@ exports.updateBranch = async (req, res, next) => {
 //@access   Private (admin)
 exports.deleteBranch = async (req, res, next) => {
   try {
-    const branch = await Branch.findById(req.params.id);
-
-    if (!branch) {
-      return res.status(404).json({success: false, msg: `No branch with the id of ${req.params.id}`});
-    }
-
-    //Cascade delete: remove this branch's cars first
-    await Car.deleteMany({branch: req.params.id});
-    await Branch.deleteOne({_id: req.params.id});
-
-    res.status(200).json({success: true, data: {}});
-  } catch (err) {
-    res.status(400).json({success: false, msg: 'Cannot delete branch'});
-  }
+    await inventory.remove('branch', req.params.id);
+    res.json({success: true, data: {}});
+  } catch (error) { next(error); }
 };

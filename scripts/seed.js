@@ -5,6 +5,8 @@ dotenv.config({ path: './config/config.env' });
 
 const User = require('../models/User');
 const Provider = require('../models/Provider');
+const Branch = require('../models/Branch');
+const Car = require('../models/Car');
 
 const providers = [
     { name: 'Sushiro Rent-A-Car Bangkok', address: '123 Rama IV Rd, Pathum Wan, Bangkok 10330', tel: '021234567' },
@@ -43,6 +45,14 @@ const seed = async () => {
                 console.log(`Created provider "${p.name}"`);
             }
         }
+        for (const [index, sample] of providers.entries()) {
+            const provider = await Provider.findOne({name: sample.name});
+            const branch = await Branch.findOneAndUpdate({provider: provider.id, name: 'Main Branch'}, {$setOnInsert: {address: sample.address, tel: sample.tel}}, {upsert: true, returnDocument: 'after', runValidators: true});
+            for (let carIndex = 1; carIndex <= 3; carIndex++) {
+                await Car.updateOne({licensePlate: `DEMO-${index + 1}-${carIndex}`}, {$setOnInsert: {provider: provider.id, branch: branch.id, brand: 'Toyota', model: 'Yaris', pricePerDay: 1000}}, {upsert: true, runValidators: true});
+            }
+        }
+        console.log('Demo inventory ready: 3 providers, 3 branches, 9 cars');
     } catch (err) {
         console.log('Seed failed: ' + err.message);
         process.exitCode = 1;

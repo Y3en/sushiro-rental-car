@@ -6,7 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "worker": "node worker.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "test:postman": "node tests/postman.js",
+    "services:up": "docker compose -p sushiro-complete up -d --wait",
+    "services:down": "docker compose -p sushiro-complete down",
+    "test:postman:remote": "newman run tests/PM.json"
   },
   "repository": {
     "type": "git",
@@ -22,11 +28,16 @@
   "homepage": "https://github.com/Y3en/sushiro-rental-car#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "bullmq": "^5.81.5",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.9.4",
     "nodemon": "^3.1.14"
+  },
+  "devDependencies": {
+    "newman": "^6.2.3"
   }
 }

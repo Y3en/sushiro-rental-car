@@ -4,6 +4,7 @@ const {getCars, getCar, createCar, updateCar, deleteCar} = require('../controlle
 const router = express.Router({mergeParams: true});
 
 const {protect, authorize} = require('../middleware/auth');
+router.get('/availability', protect, require('../controllers/bookings').getAvailability);
 
 router.route('/')
     .get(protect, getCars)
