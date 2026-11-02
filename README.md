@@ -4,6 +4,7 @@ REST API for booking rental cars, built for 2110503 SW Dev Practice (Group 7).
 Node.js + Express + MongoDB (Mongoose), JWT auth with `user` and `admin` roles. No frontend; test with Postman/Newman.
 
 Requirements and use cases: [docs/requirements-and-use-cases.md](docs/requirements-and-use-cases.md)
+Class and sequence diagrams: [docs/class-and-sequence-diagrams.md](docs/class-and-sequence-diagrams.md)
 
 ## Run on localhost
 
