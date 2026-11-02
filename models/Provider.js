@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const ProviderSchema = new mongoose.Schema({
+    bookingLock: { type: Number, default: 0, select: false },
     name: {
         type: String,
         required: [true, 'Please add a name'],

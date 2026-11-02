@@ -33,6 +33,8 @@ const UserSchema=new mongoose.Schema({
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
+    bookingLock: { type: Number, default: 0, select: false },
+    tokenVersion: { type: Number, default: 0 },
     createdAt:{
         type: Date,
         default:Date.now
@@ -47,7 +49,7 @@ UserSchema.pre('save',async function() {
 });
 
 UserSchema.methods.getSignedJwtToken=function(){
-    return jwt.sign({id:this._id},process.env.JWT_SECRET,{
+    return jwt.sign({id:this._id, version:this.tokenVersion},process.env.JWT_SECRET,{
         expiresIn: process.env.JWT_EXPIRE
     });
 }

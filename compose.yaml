@@ -1,0 +1,24 @@
+services:
+  mongo:
+    image: mongo:8
+    command: [mongod, --replSet, rs0, --bind_ip_all]
+    ports: ["127.0.0.1:27019:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: [CMD-SHELL, "mongosh --quiet --eval 'try { rs.status().ok } catch(e) { rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"localhost:27017\"}]}); }' | tail -n 1 | grep -q 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+  redis:
+    image: redis:7
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    ports: ["127.0.0.1:6381:6379"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  mongo-data:
+  redis-data:

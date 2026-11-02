@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const CarSchema = new mongoose.Schema({
+    bookingLock: { type: Number, default: 0, select: false },
     provider: {
         type: mongoose.Schema.ObjectId,
         ref: 'Provider',
@@ -31,6 +32,8 @@ const CarSchema = new mongoose.Schema({
         type: Number,
         required: [true, 'Please add a price per day'],
         min: [0, 'Price can not be negative'],
+        max: [10000000, 'Price exceeds supported limit'],
+        validate: {validator: value => Number.isFinite(value) && Math.abs(value * 100 - Math.round(value * 100)) < 0.00001, message: 'Price supports at most two decimal places'},
     },
     createdAt: {
         type: Date,
