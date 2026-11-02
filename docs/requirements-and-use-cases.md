@@ -155,7 +155,7 @@ Admin is also a User, so an admin can do every use case a User can.
 
 ## 8. Main data
 
-User, Provider, Branch, Car, Booking, Hold and Notification. The class diagram is in issue #12.
+User, Provider, Branch, Car, Booking, Hold and Notification. The class diagram and sequence diagrams are in [class-and-sequence-diagrams.md](class-and-sequence-diagrams.md).
 
 ## 9. Actions per role
 
