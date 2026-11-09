@@ -12,6 +12,7 @@
     "test:postman": "node tests/postman.js",
     "services:up": "docker compose -p sushiro-complete up -d --wait",
     "services:down": "docker compose -p sushiro-complete down",
+    "test:postman:cli": "node tests/postman-cli.js",
     "test:postman:remote": "newman run tests/PM.json"
   },
   "repository": {

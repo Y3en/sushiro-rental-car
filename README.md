@@ -25,6 +25,7 @@ By default `NOTIFICATION_MODE=log`, so emails and SMS are written to the log and
 | --- | --- |
 | `npm test` | Integration tests (Node test runner) against MongoDB and Redis from `compose.yaml` |
 | `npm run test:postman` | Starts the app on a random port and runs `tests/PM.json` with Newman on a throw-away `_test` database |
+| `npm run test:postman:cli` | Runs `tests/PM.json` with the Postman CLI against the server on http://localhost:5000 (start `npm start` and `npm run worker` first). Uses `ADMIN_EMAIL` and `ADMIN_PASSWORD` from `config/config.env`. Set `BASE_URL` to test another host |
 | `npx newman run tests/PM.json --env-var baseUrl=http://localhost:5000/api/v1 --env-var adminEmail=<ADMIN_EMAIL> --env-var adminPassword=<ADMIN_PASSWORD>` | The same collection against the server you started yourself |
 
 ## Endpoints
