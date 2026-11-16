@@ -1,1928 +1,4092 @@
 {
   "info": {
-    "name": "Sushiro Rental Car \u2014 Core + Extras",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "Sushiro — Core Requirements R1–R9 + Additional A1–A4",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "baseUrl=http://localhost:5001/api/v1. เติม adminEmail/adminPassword (seeded admin) แล้ว Run collection ตามลำดับ 1 iteration. Quick run ใช้ NOTIFICATION_MODE=log และข้าม TIMED/WORKER verify เป็นค่าเริ่มต้น; ไม่ส่งอีเมลถึง Inbox ใน quick run. R1–R9 แบ่งตาม requirement หลัก; A1–A4 ตาม additional requirements. วันและข้อมูลทดสอบสร้างใหม่ทุกครั้ง. ดูคำอธิบาย A1/A2/A4 สำหรับการยืนยัน expiry10min, live delivery/retry/DLQ และ no-show30min. เมื่อทดสอบ timed ให้เลือกเฉพาะ verify requests หลังรอ ไม่ Run setup ใหม่. ไม่เปลี่ยน server clock หรือข้อมูล seed."
   },
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://127.0.0.1:5000/api/v1"
+      "value": "http://localhost:5001/api/v1",
+      "type": "string"
     },
     {
       "key": "adminEmail",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "adminPassword",
-      "value": ""
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "runTimedSetup",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "verifyHoldExpiry",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "verifyNoShow",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "verifyDelivery",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "verifyDeadLetter",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "deliveryBookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deliveryChannel",
+      "value": "email",
+      "type": "string"
+    },
+    {
+      "key": "expectedDeliveryStatus",
+      "value": "logged",
+      "type": "string"
+    },
+    {
+      "key": "failedNotificationId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
-      "name": "Register owner (role cannot escalate)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/register",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Postman Owner\",\"tel\":\"0800000001\",\"email\":\"owner-{{runId}}@example.com\",\"password\":\"test-password-123\",\"role\":\"admin\"}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        }
-      },
-      "event": [
+      "name": "R1 — Register: name, telephone, email, password",
+      "description": "สมัครครบ 4 ช่อง, ข้อมูลไม่ครบ, อีเมลซ้ำ และป้องกันสมัครเป็น admin",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('userToken', pm.response.json().token);"
-            ]
-          }
+          "name": "Register owner (role cannot escalate)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Postman Owner\",\"tel\":\"0800000001\",\"email\":\"owner-{{runId}}@example.com\",\"password\":\"test-password-123\",\"role\":\"admin\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('userToken', pm.response.json().token);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "['userToken','otherToken','adminToken','providerId','branchId','carId','holdId','bookingId','core1','core2','core3','feeHoldId','feeBookingId','checkInBookingId','adminCore1','adminCore2','adminCore3','adminCore4'].forEach(key => pm.collectionVariables.unset(key));",
+                  "pm.collectionVariables.set('runId', Date.now().toString() + '-' + Math.random().toString(36).slice(2, 8));",
+                  "pm.collectionVariables.set('pickupDate', new Date(Date.now() + 48*3600000).toISOString());",
+                  "pm.collectionVariables.set('returnDate', new Date(Date.now() + 72*3600000).toISOString());"
+                ]
+              }
+            }
+          ]
         },
         {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.collectionVariables.set('runId',Date.now().toString());",
-              "pm.collectionVariables.set('pickupDate',new Date(Date.now()+48*3600000).toISOString());",
-              "pm.collectionVariables.set('returnDate',new Date(Date.now()+72*3600000).toISOString());"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Register second user",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/register",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Other\",\"tel\":\"0800000002\",\"email\":\"other-{{runId}}@example.com\",\"password\":\"test-password-123\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Register second user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Other\",\"tel\":\"0800000002\",\"email\":\"other-{{runId}}@example.com\",\"password\":\"test-password-123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('otherToken', pm.response.json().token);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login owner",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/login",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"email\":\"owner-{{runId}}@example.com\",\"password\":\"test-password-123\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('otherToken', pm.response.json().token);"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('userToken', pm.response.json().token);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login seeded admin",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/login",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Registration requires all fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"missing-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('adminToken', pm.response.json().token);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Owner profile",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/me"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.test('Role is user',()=>pm.expect(pm.response.json().data.role).eql('user'));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Invalid session rejected",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer invalid-session"
-          }
-        ],
-        "url": "{{baseUrl}}/providers"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "User cannot create provider",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Forbidden\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Create provider",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Runner {{runId}}\",\"address\":\"Bangkok\",\"tel\":\"021234567\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Duplicate email rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Duplicate\",\n  \"tel\": \"0800000001\",\n  \"email\": \"owner-{{runId}}@example.com\",\n  \"password\": \"test-password-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('providerId', pm.response.json().data._id);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "List providers",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Provider detail",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers/{{providerId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Update provider",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers/{{providerId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"tel\":\"029999999\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          ]
         }
       ]
     },
     {
-      "name": "Create branch",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers/{{providerId}}/branches",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Airport\",\"address\":\"Bangkok\",\"tel\":\"021234567\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+      "name": "R2 — Login & Logout",
+      "description": "ล็อกอินด้วย email/password, ข้อมูลผิด, logout และ token หลัง logout; ล็อกอินอีกครั้งเพื่อใช้โฟลเดอร์ถัดไป",
+      "item": [
+        {
+          "name": "Login owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"owner-{{runId}}@example.com\",\"password\":\"test-password-123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('branchId', pm.response.json().data._id);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "List all branches",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/branches"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "List provider branches",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers/{{providerId}}/branches"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Branch detail",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/branches/{{branchId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Update branch",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/branches/{{branchId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"name\":\"Airport Updated\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('userToken', pm.response.json().token);"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Create car",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/branches/{{branchId}}/cars",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"brand\":\"Toyota\",\"model\":\"Yaris\",\"licensePlate\":\"PM-{{runId}}\",\"pricePerDay\":1000}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Login seeded admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('carId', pm.response.json().data._id);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "List cars",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "List branch cars",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/branches/{{branchId}}/cars"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Car detail",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars/{{carId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Update car",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars/{{carId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"pricePerDay\":1200}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('adminToken', pm.response.json().token);"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Availability by branch and rental dates",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+          "name": "Owner profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/me"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{pickupDate}}&returnDate={{returnDate}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.test('One available car',()=>pm.expect(pm.response.json().count).eql(1));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Hold car for ten minutes",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/holds",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"car\":\"{{carId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Role is user',()=>pm.expect(pm.response.json().data.role).eql('user'));",
+                  "pm.test('Password is not exposed', () => pm.expect(pm.response.json().data).not.to.have.property('password'));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('holdId', pm.response.json().data._id);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Other checkout cannot lock same car",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+          "name": "Invalid session rejected",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid-session"
+              }
+            ],
+            "url": "{{baseUrl}}/providers"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{otherToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/holds",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"car\":\"{{carId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Confirm held car",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\",\"car\":\"{{carId}}\",\"holdId\":\"{{holdId}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Login requires password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner-{{runId}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('bookingId', pm.response.json().data._id);",
-              "pm.test('Server price snapshot',()=>pm.expect(pm.response.json().data.totalPriceSatang).eql(120000));",
-              "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Consumed hold cannot replay",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\",\"car\":\"{{carId}}\",\"holdId\":\"{{holdId}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));",
-              "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "List own bookings",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Own booking detail",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Other user forbidden",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{otherToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Legacy update cannot change owner or status",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/appointments/{{bookingId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"status\":\"cancelled\",\"user\":\"000000000000000000000001\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Wrong password rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner-{{runId}}@example.com\",\n  \"password\": \"wrong-password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Non-admin forbidden",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/bookings"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin list",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/bookings"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin detail",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/bookings/{{bookingId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Owner edits booking",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin edits booking",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+          "name": "Logout clears and revokes session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/logout"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/bookings/{{bookingId}}",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Early check-in rejected",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
+          "name": "Logged-out bearer rejected",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/me"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/check-in",
-        "body": {
-          "mode": "raw",
-          "raw": "{}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Cannot delete active inventory",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars/{{carId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Cancel booking and compute refund",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
-        "body": {
-          "mode": "raw",
-          "raw": "{}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Login owner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"owner-{{runId}}@example.com\",\"password\":\"test-password-123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.test('Full refund beyond 24h',()=>{const b=pm.response.json().data;pm.expect(b.status).eql('cancelled');pm.expect(b.cancellationFeeSatang).eql(0);pm.expect(b.refundSatang).eql(b.totalPriceSatang)});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Repeated cancellation is safe",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
-        "body": {
-          "mode": "raw",
-          "raw": "{}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('userToken', pm.response.json().token);"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          ]
         }
       ]
     },
     {
-      "name": "Cancelled car is available",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{pickupDate}}&returnDate={{returnDate}}"
-      },
-      "event": [
+      "name": "Setup — Rental inventory fixtures",
+      "description": "สร้าง provider/branch/car เฉพาะรอบนี้สำหรับ requirements ถัดไป; ไม่แก้ข้อมูล seed",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.test('Car released',()=>pm.expect(pm.response.json().count).eql(1));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Hold released car",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/holds",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"car\":\"{{carId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "User cannot create provider",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Forbidden\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('holdId', pm.response.json().data._id);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Release checkout hold",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/holds/{{holdId}}"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Core booking 1",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('core1', pm.response.json().data._id);",
-              "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Core booking 2",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Create provider",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Runner {{runId}}\",\"address\":\"Bangkok\",\"tel\":\"021234567\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('core2', pm.response.json().data._id);",
-              "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Core booking 3",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
           },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('providerId', pm.response.json().data._id);"
+                ]
+              }
             }
-          }
-        }
-      },
-      "event": [
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
-              "pm.collectionVariables.set('core3', pm.response.json().data._id);",
-              "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Fourth core booking rejected",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings",
-        "body": {
-          "mode": "raw",
-          "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
-          "options": {
-            "raw": {
-              "language": "json"
+          "name": "Update provider",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"tel\":\"029999999\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
-        }
-      },
-      "event": [
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Provider fields updated', () => { const expected = JSON.parse(pm.variables.replaceIn(pm.request.body.raw)); Object.entries(expected).forEach(([key,value]) => pm.expect(pm.response.json().data[key]).eql(value)); });"
+                ]
+              }
+            }
+          ]
+        },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));",
-              "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
-            ]
-          }
+          "name": "User cannot update provider",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Forbidden\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot delete provider",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}/branches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Airport\",\"address\":\"Bangkok\",\"tel\":\"021234567\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('branchId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List all branches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List provider branches",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}/branches"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Branch detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update branch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Airport Updated\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot create branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}/branches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Forbidden\",\n  \"address\": \"Bangkok\",\n  \"tel\": \"021234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot update branch",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Forbidden\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot delete branch",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create car",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}/cars",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"brand\":\"Toyota\",\"model\":\"Yaris\",\"licensePlate\":\"PM-{{runId}}\",\"pricePerDay\":1000}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('carId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List cars",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List branch cars",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}/cars"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Car detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/{{carId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update car",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/{{carId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"pricePerDay\":1200}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot create car",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}/cars",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand\": \"Toyota\",\n  \"model\": \"Yaris\",\n  \"licensePlate\": \"FORBIDDEN-{{runId}}\",\n  \"pricePerDay\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot update car",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/{{carId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pricePerDay\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "User cannot delete car",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/{{carId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Owner delete (cancels and retains audit)",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/bookings/{{core1}}"
-      },
-      "event": [
+      "name": "R3 — Provider list & Book up to 3 cars",
+      "description": "แสดงข้อมูลผู้ให้บริการ, สร้าง booking 3 รายการ และปฏิเสธรายการที่ 4; ตรวจ API ต่ำกว่า 3 วินาที",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "List providers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Provider detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Provider exposes name, address and telephone', () => ['name','address','tel'].forEach(key => pm.expect(pm.response.json().data[key]).to.be.a('string')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Core booking 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('core1', pm.response.json().data._id);",
+                  "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));",
+                  "pm.collectionVariables.set('bookingId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Core booking 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('core2', pm.response.json().data._id);",
+                  "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Core booking 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('core3', pm.response.json().data._id);",
+                  "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fourth core booking rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Admin deletes any booking",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/bookings/{{core2}}"
-      },
-      "event": [
+      "name": "R4 — View own rental bookings",
+      "description": "เจ้าของดู list/detail ได้ ผู้ใช้อื่นดูรายละเอียดไม่ได้",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "List own bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('All three own bookings visible',()=>{const ids=pm.response.json().data.map(b=>b._id);['core1','core2','core3'].forEach(key=>pm.expect(ids).includes(pm.collectionVariables.get(key)));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Own booking detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Booking identity matches', () => pm.expect(pm.response.json().data._id).eql(pm.collectionVariables.get('bookingId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Other user forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Legacy booking detail",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/appointments/{{core3}}"
-      },
-      "event": [
+      "name": "R5 — Edit own rental bookings",
+      "description": "แก้วัน/ผู้ให้บริการได้เฉพาะเจ้าของ และปฏิเสธข้อมูลไม่ถูกต้อง",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Owner edits booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Requested date and provider saved',()=>{const b=pm.response.json().data;pm.expect(Date.parse(b.pickupDate)).eql(Date.parse(pm.collectionVariables.get('pickupDate')));pm.expect(String(b.provider._id||b.provider)).eql(pm.collectionVariables.get('providerId'));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Other user cannot edit booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Missing provider rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Malformed provider ID rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"invalid\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown provider rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"000000000000000000000000\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 404', () => pm.response.to.have.status(404));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Past pickup rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"2000-01-01T00:00:00Z\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Return before pickup rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{pickupDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unsupported owner field rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"000000000000000000000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Legacy booking delete",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/appointments/{{core3}}"
-      },
-      "event": [
+      "name": "R6 — Delete own rental bookings",
+      "description": "ผู้ใช้อื่นลบไม่ได้ เจ้าของลบแล้วคืนโควตา",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Other user cannot delete booking",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Owner delete (cancels and retains audit)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{core1}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('bookingId', pm.collectionVariables.get('core2'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelled booking releases user quota",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('quotaReplacementId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete quota replacement",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{quotaReplacementId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Notification job status",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/notifications"
-      },
-      "event": [
+      "name": "R7 — Admin views any rental bookings",
+      "description": "แอดมินดู list/detail ของผู้อื่นได้ ผู้ใช้ทั่วไปเข้า admin API ไม่ได้",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Non-admin forbidden",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin list",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{bookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Notification status requires admin",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/admin/notifications"
-      },
-      "event": [
+      "name": "R8 — Admin edits any rental bookings",
+      "description": "แอดมินแก้ booking ของผู้ใช้อื่นได้",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
+          "name": "Admin edits booking",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{bookingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Requested date and provider saved',()=>{const b=pm.response.json().data;pm.expect(Date.parse(b.pickupDate)).eql(Date.parse(pm.collectionVariables.get('pickupDate')));pm.expect(String(b.provider._id||b.provider)).eql(pm.collectionVariables.get('providerId'));});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Delete car",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/cars/{{carId}}"
-      },
-      "event": [
+      "name": "R9 — Admin deletes any rental bookings",
+      "description": "แอดมินลบ booking ของผู้ใช้อื่นได้ และไม่ถูกจำกัดโควตา 3 รายการ",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Admin deletes any booking",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{core2}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Legacy booking detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/appointments/{{core3}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Legacy booking delete",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/appointments/{{core3}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin quota exemption booking 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('adminCore1', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin quota exemption booking 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('adminCore2', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin quota exemption booking 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('adminCore3', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin quota exemption booking 4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('adminCore4', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete admin quota booking 1",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{adminCore1}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete admin quota booking 2",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{adminCore2}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete admin quota booking 3",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{adminCore3}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete admin quota booking 4",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/bookings/{{adminCore4}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Delete branch",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/branches/{{branchId}}"
-      },
-      "event": [
+      "name": "A1 — Real-time availability, race protection & 10-minute hold",
+      "description": "เร็ว: ตรวจวันที่/สาขา, lock 10 นาที, checkout พร้อมกัน, replay. Expiry จริง: ตั้ง runTimedSetup=true แล้ว Run ทั้งชุดหนึ่งครั้ง; รอ expiryAt แล้วตั้ง verifyHoldExpiry=true และเลือกเฉพาะ TIMED verify ทั้งสองรายการ (ไม่รัน setup ใหม่).",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Availability by branch and rental dates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{pickupDate}}&returnDate={{returnDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('One available car',()=>pm.expect(pm.response.json().count).eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid car ID rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"car\": \"invalid\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold car for ten minutes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"car\":\"{{carId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('holdId', pm.response.json().data._id);",
+                  "pm.test('Hold expires in about ten minutes', () => { const remaining = Date.parse(pm.response.json().data.expiresAt) - Date.now(); pm.expect(remaining).above(590000); pm.expect(remaining).at.most(600000); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Other checkout cannot lock same car",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"car\":\"{{carId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Other user cannot release hold",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{otherToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds/{{holdId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Held car excluded from availability",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{pickupDate}}&returnDate={{returnDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Held car unavailable', () => pm.expect(pm.response.json().count).eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm held car",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\",\"car\":\"{{carId}}\",\"holdId\":\"{{holdId}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('bookingId', pm.response.json().data._id);",
+                  "pm.test('Server price snapshot',()=>pm.expect(pm.response.json().data.totalPriceSatang).eql(120000));",
+                  "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));",
+                  "pm.test('Confirmed booking uses held car', () => { const b = pm.response.json().data; pm.expect(b.status).eql('confirmed'); pm.expect(String(b.car)).eql(pm.collectionVariables.get('carId')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consumed hold cannot replay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"provider\":\"{{providerId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\",\"car\":\"{{carId}}\",\"holdId\":\"{{holdId}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));",
+                  "pm.test('Booking responds within 3s', () => pm.expect(pm.response.responseTime).below(3000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Car booking requires valid hold",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"pickupDate\": \"{{pickupDate}}\",\n  \"returnDate\": \"{{returnDate}}\",\n  \"car\": \"{{carId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Concurrent checkouts: exactly one hold wins",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{racePickup}}&returnDate={{raceReturn}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "const payload={car:pm.collectionVariables.get('carId'),pickupDate:pm.collectionVariables.get('racePickup'),returnDate:pm.collectionVariables.get('raceReturn')};",
+                  "const outcomes=[]; const target=pm.variables.get('baseUrl')+'/holds';",
+                  "['userToken','otherToken'].forEach(key=>pm.sendRequest({url:target,method:'POST',header:{'Content-Type':'application/json',Authorization:'Bearer '+pm.collectionVariables.get(key)},body:{mode:'raw',raw:JSON.stringify(payload)}},(error,response)=>{ outcomes.push({error,response,key}); if(outcomes.length!==2)return; pm.test('Concurrent holds return one 201 and one 409',()=>{outcomes.forEach(o=>pm.expect(o.error).eql(null));pm.expect(outcomes.map(o=>o.response.code).sort()).eql([201,409]);}); const winner=outcomes.find(o=>o.response&&o.response.code===201); if(winner)pm.sendRequest({url:target+'/'+winner.response.json().data._id,method:'DELETE',header:{Authorization:'Bearer '+pm.collectionVariables.get(winner.key)}},(err,res)=>pm.test('Concurrent-test hold released',()=>{pm.expect(err).eql(null);pm.expect(res.code).eql(200);})); }));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('racePickup',new Date(Date.now()+120*3600000).toISOString());",
+                  "pm.collectionVariables.set('raceReturn',new Date(Date.now()+144*3600000).toISOString());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED setup: hold to expire naturally",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"car\": \"{{carId}}\",\n  \"pickupDate\": \"{{racePickup}}\",\n  \"returnDate\": \"{{raceReturn}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('runTimedSetup') !== 'true') pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('expiryHoldId',pm.response.json().data._id);pm.collectionVariables.set('expiryAt',pm.response.json().data.expiresAt);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED verify: expired hold cannot confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"car\": \"{{carId}}\",\n  \"holdId\": \"{{expiryHoldId}}\",\n  \"pickupDate\": \"{{racePickup}}\",\n  \"returnDate\": \"{{raceReturn}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyHoldExpiry') !== 'true') pm.execution.skipRequest();",
+                  "if(!pm.collectionVariables.get('expiryAt')||Date.now()<=Date.parse(pm.collectionVariables.get('expiryAt')))throw new Error('Wait until expiryAt (10 minutes after timed hold setup), then run this request.');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED verify: expired hold releases inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{racePickup}}&returnDate={{raceReturn}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyHoldExpiry') !== 'true') pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Expired hold no longer blocks selected car',()=>pm.expect(pm.response.json().data.some(car=>car._id===pm.collectionVariables.get('carId'))).eql(true));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Delete provider",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/providers/{{providerId}}"
-      },
-      "event": [
+      "name": "A2 — Async notifications, reminders, retry & dead-letter",
+      "description": "เร็ว: ตรวจ outbox confirmation/reminder และ booking API <3s. Worker: เปิด Redis+worker แล้วเลือก verify ด้วยตัวแปรที่ระบุ. expectedDeliveryStatus=sent สำหรับ live หรือ logged สำหรับ log; sent ยืนยัน provider รับคำขอ ไม่ยืนยัน Inbox. retry/DLQ: ใช้ failure ที่ควบคุมได้, failedNotificationId และ verifyDeadLetter=true; API ตรวจ dead marker/3 attempts เท่านั้น Redis DLQ ต้องใช้ integration test. อย่ารัน setup/แก้/ยกเลิก booking ซ้ำระหว่างรอส่ง.",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Booking creates confirmation and reminder jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Current booking has confirmation and reminder jobs', () => { const jobs = pm.response.json().data.filter(n => String(n.booking) === pm.collectionVariables.get('bookingId')); ['confirmation', 'reminder'].forEach(event => pm.expect(jobs.some(n => n.event === event), event + ' exists').eql(true)); });",
+                  "pm.test('Notification states are valid', () => pm.response.json().data.forEach(n => pm.expect(['pending','queued','sent','logged','skipped','dead']).includes(n.status)));",
+                  "pm.test('Reminder due 24 hours before pickup',()=>{const jobs=pm.response.json().data.filter(n=>String(n.booking)===pm.collectionVariables.get('bookingId'));const expected=Date.parse(pm.collectionVariables.get('pickupDate'))-86400000;pm.expect(jobs.some(n=>n.event==='reminder'&&Date.parse(n.dueAt)===expected)).eql(true);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notification status filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications?status=pending"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Only pending jobs returned', () => pm.response.json().data.forEach(n => pm.expect(n.status).eql('pending')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid notification status rejected",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications?status=invalid"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notification status requires admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 403', () => pm.response.to.have.status(403));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "WORKER verify: confirmation delivered by configured transport",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyDelivery') !== 'true') pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Specified confirmation delivered',()=>{const n=pm.response.json().data.find(n=>String(n.booking)===pm.variables.get('deliveryBookingId')&&n.event==='confirmation'&&n.channel===pm.variables.get('deliveryChannel'));pm.expect(n,'matching confirmation').to.exist;pm.expect(n.status).eql(pm.variables.get('expectedDeliveryStatus'));pm.expect(n.attempts).within(1,3);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "WORKER verify: permanent failure after 3 attempts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications?status=dead"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyDeadLetter') !== 'true') pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Specified notification is dead after 3 attempts',()=>{const n=pm.response.json().data.find(n=>n._id===pm.variables.get('failedNotificationId'));pm.expect(n,'failedNotificationId must identify controlled failed delivery').to.exist;pm.expect(n.attempts).eql(3);pm.expect(n.lastError).to.be.a('string').and.not.empty;});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Logout clears and revokes session",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/logout"
-      },
-      "event": [
+      "name": "A3 — Cancellation fee, refund & inventory release",
+      "description": "ทดสอบ >24h คืนเต็ม, 2–24h ค่าธรรมเนียม 50%, <=2h ไม่คืนเงิน; ใช้ booking มีราคาจริง, ตรวจ cancelled และ inventory",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
-            ]
-          }
+          "name": "Early check-in rejected",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/check-in",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cannot delete active inventory",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/{{carId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 409', () => pm.response.to.have.status(409));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel booking and compute refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Full refund beyond 24h',()=>{const b=pm.response.json().data;pm.expect(b.status).eql('cancelled');pm.expect(b.cancellationFeeSatang).eql(0);pm.expect(b.refundSatang).eql(b.totalPriceSatang)});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repeated cancellation is safe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelled car is available",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{pickupDate}}&returnDate={{returnDate}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Car released',()=>pm.expect(pm.response.json().count).eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold released car",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"car\":\"{{carId}}\",\"pickupDate\":\"{{pickupDate}}\",\"returnDate\":\"{{returnDate}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('holdId', pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Release checkout hold",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds/{{holdId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold car for 50 percent cancellation fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"car\": \"{{carId}}\",\n  \"pickupDate\": \"{{feePickupDate}}\",\n  \"returnDate\": \"{{feeReturnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('feeHoldId', pm.response.json().data._id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('feePickupDate', new Date(Date.now() + 12*3600000).toISOString());",
+                  "pm.collectionVariables.set('feeReturnDate', new Date(Date.now() + 36*3600000).toISOString());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book car for 50 percent cancellation fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"car\": \"{{carId}}\",\n  \"holdId\": \"{{feeHoldId}}\",\n  \"pickupDate\": \"{{feePickupDate}}\",\n  \"returnDate\": \"{{feeReturnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('feeBookingId', pm.response.json().data._id);",
+                  "pm.test('Priced rental', () => pm.expect(pm.response.json().data.totalPriceSatang).above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel with 50 percent fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{feeBookingId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Cancellation fee and refund match policy', () => { const b = pm.response.json().data; pm.expect(b.status).eql('cancelled'); pm.expect(b.totalPriceSatang).above(0); pm.expect(b.cancellationFeeSatang).eql(Math.round(b.totalPriceSatang / 2)); pm.expect(b.refundSatang).eql(b.totalPriceSatang - b.cancellationFeeSatang); });",
+                  "pm.sendRequest({url:pm.variables.get('baseUrl')+'/cars/availability?branch='+pm.collectionVariables.get('branchId')+'&pickupDate='+encodeURIComponent(pm.collectionVariables.get('feePickupDate'))+'&returnDate='+encodeURIComponent(pm.collectionVariables.get('feeReturnDate')),method:'GET',header:{Authorization:'Bearer '+pm.collectionVariables.get('userToken')}},(err,res)=>pm.test('Cancelled car returned to available inventory',()=>{pm.expect(err).eql(null);pm.expect(res.code).eql(200);pm.expect(res.json().data.some(car=>car._id===pm.collectionVariables.get('carId'))).eql(true);}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Hold car for 100 percent cancellation fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"car\": \"{{carId}}\",\n  \"pickupDate\": \"{{feePickupDate}}\",\n  \"returnDate\": \"{{feeReturnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('feeHoldId', pm.response.json().data._id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('feePickupDate', new Date(Date.now() + 1*3600000).toISOString());",
+                  "pm.collectionVariables.set('feeReturnDate', new Date(Date.now() + 25*3600000).toISOString());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book car for 100 percent cancellation fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"car\": \"{{carId}}\",\n  \"holdId\": \"{{feeHoldId}}\",\n  \"pickupDate\": \"{{feePickupDate}}\",\n  \"returnDate\": \"{{feeReturnDate}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('feeBookingId', pm.response.json().data._id);",
+                  "pm.test('Priced rental', () => pm.expect(pm.response.json().data.totalPriceSatang).above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel with 100 percent fee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{feeBookingId}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Cancellation fee and refund match policy', () => { const b = pm.response.json().data; pm.expect(b.status).eql('cancelled'); pm.expect(b.totalPriceSatang).above(0); pm.expect(b.cancellationFeeSatang).eql(b.totalPriceSatang); pm.expect(b.refundSatang).eql(b.totalPriceSatang - b.cancellationFeeSatang); });",
+                  "pm.sendRequest({url:pm.variables.get('baseUrl')+'/cars/availability?branch='+pm.collectionVariables.get('branchId')+'&pickupDate='+encodeURIComponent(pm.collectionVariables.get('feePickupDate'))+'&returnDate='+encodeURIComponent(pm.collectionVariables.get('feeReturnDate')),method:'GET',header:{Authorization:'Bearer '+pm.collectionVariables.get('userToken')}},(err,res)=>pm.test('Cancelled car returned to available inventory',()=>{pm.expect(err).eql(null);pm.expect(res.code).eql(200);pm.expect(res.json().data.some(car=>car._id===pm.collectionVariables.get('carId'))).eql(true);}));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Logged-out bearer rejected",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{userToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/auth/me"
-      },
-      "event": [
+      "name": "A4 — Automatic no-show after 30 minutes & email",
+      "description": "ตั้ง NOTIFICATION_CHANNELS=email, เปิด worker, runTimedSetup=true แล้ว Run ทั้งชุดหนึ่งครั้ง (Cleanup จะข้ามเพื่อเก็บ fixtures). ห้าม check-in booking นี้. รอ noShowDeadline + เวลาประมวลผล worker แล้วตั้ง verifyNoShow=true เลือกเฉพาะ TIMED verify 3 รายการ. ไม่รอ 30 นาทีใน quick run และไม่อ้างว่า no-show ผ่านเมื่อข้ามเคส.",
+      "item": [
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
-              "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(false));"
-            ]
-          }
+          "name": "TIMED setup: hold car for no-show",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/holds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"car\": \"{{carId}}\",\n  \"pickupDate\": \"{{noShowPickup}}\",\n  \"returnDate\": \"{{noShowReturn}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('noShowHoldId',pm.response.json().data._id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('runTimedSetup') !== 'true') pm.execution.skipRequest();",
+                  "pm.collectionVariables.set('noShowPickup',new Date(Date.now()+60000).toISOString());pm.collectionVariables.set('noShowReturn',new Date(Date.now()+86460000).toISOString());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED setup: confirm and do not check in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"{{providerId}}\",\n  \"car\": \"{{carId}}\",\n  \"holdId\": \"{{noShowHoldId}}\",\n  \"pickupDate\": \"{{noShowPickup}}\",\n  \"returnDate\": \"{{noShowReturn}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('runTimedSetup') !== 'true') pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.collectionVariables.set('noShowBookingId',pm.response.json().data._id);pm.collectionVariables.set('noShowDeadline',new Date(Date.parse(pm.collectionVariables.get('noShowPickup'))+1800000).toISOString());",
+                  "pm.test('Booking responds strictly within 3 seconds',()=>pm.expect(pm.response.responseTime).below(3000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED verify: no-show after pickup plus 30 minutes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/{{noShowBookingId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('Booking automatically became no-show',()=>pm.expect(pm.response.json().data.status).eql('no-show'));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyNoShow') !== 'true') pm.execution.skipRequest();",
+                  "if(!pm.collectionVariables.get('noShowDeadline')||Date.now()<Date.parse(pm.collectionVariables.get('noShowDeadline')))throw new Error('Wait until noShowDeadline and keep worker running; run verify requests only.');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED verify: no-show car available again",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/availability?branch={{branchId}}&pickupDate={{noShowProbePickup}}&returnDate={{noShowReturn}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('No-show releases selected car',()=>pm.expect(pm.response.json().data.some(car=>car._id===pm.collectionVariables.get('carId'))).eql(true));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyNoShow') !== 'true') pm.execution.skipRequest();",
+                  "pm.collectionVariables.set('noShowProbePickup',new Date(Date.now()+60000).toISOString());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TIMED verify: no-show email delivered",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/notifications"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get('verifyNoShow') !== 'true') pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "pm.test('No-show email reaches configured transport',()=>{const n=pm.response.json().data.find(n=>String(n.booking)===pm.collectionVariables.get('noShowBookingId')&&n.event==='no-show'&&n.channel==='email');pm.expect(n,'no-show email job').to.exist;pm.expect(n.status).eql(pm.variables.get('expectedDeliveryStatus'));});"
+                ]
+              }
+            }
+          ]
         }
       ]
+    },
+    {
+      "name": "Cleanup — Test inventory only",
+      "description": "รันหลัง timed verification สำเร็จและยกเลิก booking ทดสอบที่ยัง confirmed แล้ว; ตั้ง runTimedSetup=false ก่อน cleanup. บัญชีทดสอบคงอยู่เพราะไม่มี API ลบบัญชี.",
+      "item": [
+        {
+          "name": "Delete car",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/cars/{{carId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.variables.get('runTimedSetup')==='true')pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete branch",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/branches/{{branchId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.variables.get('runTimedSetup')==='true')pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete provider",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/providers/{{providerId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('JSON success contract', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.variables.get('runTimedSetup')==='true')pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const endpoint = pm.variables.replaceIn(pm.request.url.toString());",
+          "if (endpoint.endsWith('/auth/login') && pm.request.body && pm.request.body.raw.includes('{{adminEmail}}')) {",
+          "  if (!pm.variables.get('adminEmail') || !pm.variables.get('adminPassword')) throw new Error('Set adminEmail and adminPassword in Collection Variables before running.');",
+          "}"
+        ]
+      }
     }
   ]
 }
