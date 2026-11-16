@@ -3,11 +3,60 @@ const IORedis = require('ioredis');
 const Notification = require('../models/Notification');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
+const Branch = require('../models/Branch');
 const {markNoShows} = require('./rental');
 
 const request = async (url, options) => {
     const response = await fetch(url, {...options, signal: AbortSignal.timeout(5000)});
     if (!response.ok) throw new Error(`Notification provider returned HTTP ${response.status}`);
+};
+const bookingEmail = (notification, user, booking) => {
+    const messages = {
+        confirmation: ['ยืนยันการจองรถสำเร็จ', 'ขอบคุณที่ใช้บริการ Sushiro รายละเอียดการจองของคุณมีดังนี้'],
+        reminder: ['แจ้งเตือนการรับรถ', 'ใกล้ถึงเวลารับรถแล้ว กรุณาตรวจสอบรายละเอียดการจองด้านล่าง'],
+        'no-show': ['แจ้งสถานะไม่มารับรถ', 'รายการจองนี้ถูกบันทึกว่าไม่มารับรถตามกำหนด กรุณาติดต่อผู้ให้บริการหากต้องการความช่วยเหลือ']
+    };
+    const [title, intro] = messages[notification.event];
+    const date = value => value ? new Intl.DateTimeFormat('th-TH-u-ca-gregory', {
+        timeZone: 'Asia/Bangkok', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).format(new Date(value)) + ' น.' : 'ไม่ระบุ';
+    const provider = booking.provider || {};
+    const car = booking.car || {};
+    const branch = car.branch || {};
+    const statuses = {confirmed: 'ยืนยันแล้ว', cancelled: 'ยกเลิกแล้ว', 'no-show': 'ไม่มารับรถ', completed: 'เสร็จสิ้น'};
+    const rows = [
+        ['หมายเลขการจอง', booking.id],
+        ['สถานะการจอง', statuses[booking.status] || booking.status],
+        ['วันที่ทำรายการ', date(booking.createdAt)],
+        ['ชื่อผู้จอง', user.name],
+        ['อีเมล', user.email],
+        ['เบอร์โทรผู้จอง', user.tel],
+        ['วันและเวลารับรถ', date(booking.pickupDate)],
+        ['วันและเวลาคืนรถ', date(booking.returnDate)],
+        ['ผู้ให้บริการ', provider.name],
+        ['รถที่จอง', [car.brand, car.model].filter(Boolean).join(' ')],
+        ['ทะเบียนรถ', car.licensePlate],
+        ['สาขารับรถ', branch.name],
+        ['สถานที่รับรถ', branch.address || provider.address],
+        ['โทรติดต่อผู้ให้บริการ', provider.tel],
+        ['ยอดรวมการจอง', new Intl.NumberFormat('th-TH', {style: 'currency', currency: 'THB'}).format((booking.totalPriceSatang || 0) / 100)]
+    ].map(([label, value]) => [label, value == null || value === '' ? 'ไม่ระบุ' : String(value)]);
+    const escape = value => String(value).replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
+    const footer = 'วันและเวลาทั้งหมดเป็นเวลาประเทศไทย (UTC+7) กรุณาเก็บอีเมลนี้ไว้ใช้อ้างอิงเมื่อติดต่อผู้ให้บริการ';
+    return {
+        subject: `Sushiro | ${title} | ${booking.id}`,
+        text: `${title}\n\nเรียน คุณ${user.name || 'ลูกค้า'}\n${intro}\n\n${rows.map(([label, value]) => `${label}: ${value}`).join('\n')}\n\n${footer}\nทีมงาน Sushiro Rental Car`,
+        html: `<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:24px 12px;background:#f3f4f6;font-family:Tahoma,Arial,sans-serif;color:#1f2937;line-height:1.7">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+<tr><td style="padding:24px;background:#b91c1c;color:#ffffff"><div style="font-size:14px;letter-spacing:2px">SUSHIRO RENTAL CAR</div><h1 style="margin:8px 0 0;font-size:24px">${escape(title)}</h1></td></tr>
+<tr><td style="padding:24px"><p style="margin:0 0 12px">เรียน คุณ${escape(user.name || 'ลูกค้า')}</p><p style="margin:0 0 20px">${escape(intro)}</p>
+<h2 style="margin:0 0 12px;font-size:18px">รายละเอียดการจอง</h2>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px">${rows.map(([label, value]) => `<tr><th scope="row" align="left" valign="top" style="width:40%;padding:10px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-weight:normal">${escape(label)}</th><td valign="top" style="padding:10px 8px;border-bottom:1px solid #e5e7eb;overflow-wrap:anywhere;word-break:break-word">${escape(value)}</td></tr>`).join('')}</table>
+<p style="margin:20px 0 0;color:#6b7280;font-size:12px">${escape(footer)}</p><p style="margin:12px 0 0">ทีมงาน Sushiro Rental Car</p></td></tr></table>
+</td></tr></table></body></html>`
+    };
 };
 const deliver = async (notification, user, booking) => {
     const mode = process.env.NOTIFICATION_MODE || 'log';
@@ -19,9 +68,14 @@ const deliver = async (notification, user, booking) => {
     if (mode !== 'live') throw new Error('NOTIFICATION_MODE must be log or live');
     if (notification.channel === 'email') {
         if (!process.env.SENDGRID_API_KEY || !process.env.EMAIL_FROM) throw new Error('SendGrid credentials missing');
+        await booking.populate([
+            {path: 'provider', select: 'name address tel'},
+            {path: 'car', select: 'brand model licensePlate branch', populate: {path: 'branch', model: Branch, select: 'name address'}}
+        ]);
+        const email = bookingEmail(notification, user, booking);
         await request('https://api.sendgrid.com/v3/mail/send', {
             method: 'POST', headers: {Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`, 'Content-Type': 'application/json'},
-            body: JSON.stringify({personalizations: [{to: [{email: user.email}]}], from: {email: process.env.EMAIL_FROM}, subject: `Sushiro ${notification.event}`, content: [{type: 'text/plain', value: text}]})
+            body: JSON.stringify({personalizations: [{to: [{email: user.email}]}], from: {email: process.env.EMAIL_FROM, name: 'Sushiro Rental Car'}, subject: email.subject, content: [{type: 'text/plain', value: email.text}, {type: 'text/html', value: email.html}]})
         });
     } else {
         const {TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: token, SMS_FROM: from} = process.env;
